@@ -11,7 +11,9 @@
     "seed-full": "npx tsx prisma/comprehensive-seed.ts",
     "seed-super": "npx tsx prisma/super-comprehensive-seed.ts",
     "seed-complete": "npx tsx prisma/complete-curriculum-seed.ts",
-    "seed-ultra": "npx tsx prisma/ultra-complete-seed.ts"
+    "seed-ultra": "npx tsx prisma/ultra-complete-seed.ts",
+    "seed-university": "npx tsx prisma/high-school-university-seed.ts",
+    "seed-all": "npx tsx prisma/complete-education-system-seed.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/comprehensive-seed.ts"

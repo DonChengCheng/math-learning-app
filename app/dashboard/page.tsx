@@ -1,5 +1,6 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
+import Link from "next/link"
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -17,6 +18,12 @@ export default async function DashboardPage() {
         <p className="mt-2 text-gray-600">
           开始您的数学学习之旅
         </p>
+        
+        <div className="mt-6">
+          <Link href="/courses" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+            浏览所有课程
+          </Link>
+        </div>
         
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <div className="bg-white overflow-hidden shadow rounded-lg">

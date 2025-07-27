@@ -22,9 +22,9 @@ export default function Home() {
               </Link>
             </div>
             <div className="mt-3 rounded-md shadow sm:mt-0 sm:ml-3">
-              <Link href="/auth/signin">
+              <Link href="/courses">
                 <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                  登录账号
+                  浏览课程
                 </Button>
               </Link>
             </div>

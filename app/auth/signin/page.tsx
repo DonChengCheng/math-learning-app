@@ -31,7 +31,7 @@ export default function SignIn() {
         router.push('/dashboard')
         router.refresh()
       }
-    } catch (error) {
+    } catch {
       setError('登录失败，请重试')
     } finally {
       setIsLoading(false)

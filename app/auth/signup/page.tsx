@@ -64,7 +64,7 @@ export default function SignUp() {
         router.push('/dashboard')
         router.refresh()
       }
-    } catch (error) {
+    } catch {
       setError('注册失败，请重试')
     } finally {
       setIsLoading(false)

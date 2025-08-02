@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 export default async function CoursePage({
   params
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
   const session = await auth()
   
@@ -15,7 +15,8 @@ export default async function CoursePage({
     redirect('/auth/signin')
   }
 
-  const course = await getCourseById(params.id, session.user.id)
+  const resolvedParams = await params
+  const course = await getCourseById(resolvedParams.id, session.user.id)
 
   if (!course) {
     notFound()

@@ -32,7 +32,7 @@ export interface Lesson {
 
 export interface UserProgress {
   userId: string
-  courseId: string
+  courseId: string | null
   progress: number
   completed: boolean
   lastAccess: Date
@@ -179,8 +179,8 @@ export async function getRecommendedCourses(userId: string, limit = 6) {
     }
   })
 
-  const studiedSubjects = userProgress.map(p => p.course?.subject).filter(Boolean)
-  const studiedLevels = userProgress.map(p => p.course?.level).filter(Boolean)
+  const studiedSubjects = userProgress.map(p => p.course?.subject).filter((s): s is string => Boolean(s))
+  const studiedLevels = userProgress.map(p => p.course?.level).filter((l): l is string => Boolean(l))
 
   // 推荐同级别的其他学科课程
   const recommendations = await prisma.course.findMany({

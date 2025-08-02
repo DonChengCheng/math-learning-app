@@ -69,7 +69,7 @@ export default async function CoursesPage() {
                         </div>
                         <Link href={`/courses/${course.id}`}>
                           <Button size="sm">
-                            {course.userProgress?.progress > 0 ? '继续学习' : '开始学习'}
+                            {(course.userProgress?.progress ?? 0) > 0 ? '继续学习' : '开始学习'}
                           </Button>
                         </Link>
                       </div>

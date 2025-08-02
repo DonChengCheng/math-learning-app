@@ -5,11 +5,12 @@ import { getCourseById } from '@/lib/courses'
 // GET /api/courses/[id] - 获取单个课程详情
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
-    const course = await getCourseById(params.id, session?.user?.id)
+    const resolvedParams = await params
+    const course = await getCourseById(resolvedParams.id, session?.user?.id)
 
     if (!course) {
       return NextResponse.json(

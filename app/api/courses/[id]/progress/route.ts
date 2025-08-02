@@ -5,7 +5,7 @@ import { getUserCourseProgress, updateUserProgress } from '@/lib/courses'
 // GET /api/courses/[id]/progress - 获取用户学习进度
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -17,7 +17,8 @@ export async function GET(
       )
     }
 
-    const progress = await getUserCourseProgress(session.user.id, params.id)
+    const resolvedParams = await params
+    const progress = await getUserCourseProgress(session.user.id, resolvedParams.id)
     
     if (!progress) {
       return NextResponse.json(
@@ -39,7 +40,7 @@ export async function GET(
 // POST /api/courses/[id]/progress - 更新学习进度
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -52,10 +53,11 @@ export async function POST(
     }
 
     const { lessonId, completed } = await request.json()
+    const resolvedParams = await params
 
     const progress = await updateUserProgress(
       session.user.id,
-      params.id,
+      resolvedParams.id,
       lessonId,
       completed
     )

@@ -3,11 +3,12 @@ import { getLessonById } from '@/lib/courses'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { MathContent } from '@/components/ui/math-content'
 
 export default async function LessonPage({
   params
 }: {
-  params: { id: string; chapterId: string; lessonId: string }
+  params: Promise<{ id: string; chapterId: string; lessonId: string }>
 }) {
   const session = await auth()
   
@@ -15,7 +16,8 @@ export default async function LessonPage({
     redirect('/auth/signin')
   }
 
-  const lesson = await getLessonById(params.lessonId, session.user.id)
+  const resolvedParams = await params
+  const lesson = await getLessonById(resolvedParams.lessonId, session.user.id)
 
   if (!lesson) {
     notFound()
@@ -95,9 +97,7 @@ export default async function LessonPage({
 
         {/* 课时内容 */}
         <div className="bg-white shadow-sm rounded-lg p-6 mb-8">
-          <div className="prose max-w-none">
-            <div className="whitespace-pre-wrap">{lesson.content}</div>
-          </div>
+          <MathContent content={lesson.content} />
           
           {lesson.videoUrl && (
             <div className="mt-8">
@@ -126,7 +126,9 @@ export default async function LessonPage({
                       <h4 className="font-medium text-gray-900">
                         {index + 1}. {problem.title}
                       </h4>
-                      <p className="text-gray-600 mt-2">{problem.content}</p>
+                      <div className="text-gray-600 mt-2">
+                        <MathContent content={problem.content} />
+                      </div>
                       <div className="flex items-center mt-3 text-sm">
                         <span className={`px-2 py-1 rounded text-xs font-medium ${
                           problem.difficulty <= 2 

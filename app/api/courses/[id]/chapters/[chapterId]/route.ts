@@ -5,11 +5,12 @@ import { getChapterById } from '@/lib/courses'
 // GET /api/courses/[id]/chapters/[chapterId] - 获取单个章节详情
 export async function GET(
   request: Request,
-  { params }: { params: { id: string; chapterId: string } }
+  { params }: { params: Promise<{ id: string; chapterId: string }> }
 ) {
   try {
     const session = await auth()
-    const chapter = await getChapterById(params.chapterId, session?.user?.id)
+    const resolvedParams = await params
+    const chapter = await getChapterById(resolvedParams.chapterId, session?.user?.id)
 
     if (!chapter) {
       return NextResponse.json(

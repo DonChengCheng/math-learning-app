@@ -30,7 +30,17 @@
       "Bash(find:*)",
       "Bash(mv:*)",
       "Bash(cp:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(git remote add:*)",
+      "Bash(git checkout:*)",
+      "Bash(git fetch:*)",
+      "Bash(git branch:*)",
+      "Bash(npm cache clean:*)",
+      "Bash(psql:*)",
+      "Bash(export:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npx puppeteer browsers:*)",
+      "Bash(unset http_proxy https_proxy)"
     ],
     "deny": []
   }

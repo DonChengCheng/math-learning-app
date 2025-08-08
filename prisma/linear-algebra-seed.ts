@@ -64,9 +64,9 @@ async function main() {
 
   } catch (error) {
     console.error('❌ 导入过程中发生错误:')
-    console.error(error.message)
+    console.error(error instanceof Error ? error.message : String(error))
     
-    if (error.stack) {
+    if (error instanceof Error && error.stack) {
       console.error('\n详细错误信息:')
       console.error(error.stack)
     }

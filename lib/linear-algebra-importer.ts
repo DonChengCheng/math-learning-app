@@ -202,7 +202,7 @@ export async function validateLinearAlgebraContent(content: LinearAlgebraContent
     console.log('✓ 内容验证通过')
     return true
   } catch (error) {
-    console.error('✗ 内容验证失败:', error.message)
+    console.error('✗ 内容验证失败:', error instanceof Error ? error.message : String(error))
     return false
   }
 }

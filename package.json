@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -16,7 +16,15 @@
     "seed-all": "npx tsx prisma/complete-education-system-seed.ts",
     "seed-linear-algebra": "npx tsx prisma/linear-algebra-seed.ts",
     "clean-linear-algebra": "npx tsx scripts/clean-linear-algebra.ts",
-    "verify-linear-algebra": "npx tsx scripts/verify-linear-algebra.ts"
+    "verify-linear-algebra": "npx tsx scripts/verify-linear-algebra.ts",
+    "seed-calculus": "npx tsx scripts/seed-calculus.ts",
+    "clean-calculus": "npx tsx scripts/clean-calculus.ts",
+    "verify-calculus": "npx tsx scripts/verify-calculus.ts",
+    "seed-web": "npx tsx prisma/seed-from-web.ts",
+    "seed-web:clean": "npx tsx prisma/seed-from-web.ts --clean",
+    "seed-web:check": "npx tsx prisma/seed-from-web.ts --check-health",
+    "seed-web:dry": "npx tsx prisma/seed-from-web.ts --dry-run",
+    "seed-web:all": "npx tsx prisma/seed-from-web.ts --subject 线性代数 --subject 微积分 --subject 概率统计 --subject 离散数学"
   },
   "prisma": {
     "seed": "npx tsx prisma/comprehensive-seed.ts"
@@ -36,6 +44,7 @@
     "prisma": "^6.13.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-error-boundary": "^6.0.0",
     "react-katex": "^3.1.0",
     "react-markdown": "^10.1.0",
     "rehype-katex": "^7.0.1",

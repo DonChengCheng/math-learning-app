@@ -6,6 +6,27 @@ const prisma = new PrismaClient()
 export class LinearAlgebraImporter {
   private courseId: string | null = null
 
+  // 数据清洗函数，确保LaTeX格式正确
+  private cleanLatexContent(content: string): string {
+    if (!content) return content
+    
+    // 移除可能的过度转义
+    let cleaned = content
+    
+    // 修复可能的双重转义问题
+    cleaned = cleaned.replace(/\\\\\\\\begin\{/g, '\\begin{')
+    cleaned = cleaned.replace(/\\\\\\\\end\{/g, '\\end{')
+    
+    // 修复行分隔符的转义问题
+    cleaned = cleaned.replace(/\\\\\\\\\\\\\\\\/g, '\\\\')
+    
+    // 确保数学环境的正确格式
+    cleaned = cleaned.replace(/\$\$\s*\\\\/g, '$$\\')
+    
+    console.log(`已清洗内容，长度: ${content.length} -> ${cleaned.length}`)
+    return cleaned
+  }
+
   async importContent(content: LinearAlgebraContent): Promise<void> {
     try {
       console.log('开始导入线性代数课程内容...')
@@ -68,11 +89,14 @@ export class LinearAlgebraImporter {
   private async createLesson(lesson: LinearAlgebraLesson, chapterId: string): Promise<void> {
     console.log(`    创建课时: ${lesson.title}`)
     
+    // 清洗课时内容中的LaTeX格式
+    const cleanedContent = this.cleanLatexContent(lesson.content)
+    
     const createdLesson = await prisma.lesson.create({
       data: {
         chapterId,
         title: lesson.title,
-        content: lesson.content,
+        content: cleanedContent,
         videoUrl: lesson.videoUrl || null,
         order: lesson.order
       }
@@ -88,16 +112,20 @@ export class LinearAlgebraImporter {
   private async createProblem(problem: LinearAlgebraProblem, lessonId: string): Promise<void> {
     console.log(`      创建题目: ${problem.title}`)
     
+    // 清洗题目内容和解释中的LaTeX格式
+    const cleanedContent = this.cleanLatexContent(problem.content)
+    const cleanedExplanation = problem.explanation ? this.cleanLatexContent(problem.explanation) : null
+    
     const createdProblem = await prisma.problem.create({
       data: {
         lessonId,
         title: problem.title,
-        content: problem.content,
+        content: cleanedContent,
         type: problem.type,
         difficulty: problem.difficulty,
         points: problem.points,
         answer: problem.answer as any, // Prisma Json type
-        explanation: problem.explanation || null,
+        explanation: cleanedExplanation,
         tags: problem.tags
       }
     })

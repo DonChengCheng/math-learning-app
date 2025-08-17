@@ -40,7 +40,9 @@
       "Bash(export:*)",
       "mcp__ide__getDiagnostics",
       "Bash(npx puppeteer browsers:*)",
-      "Bash(unset http_proxy https_proxy)"
+      "Bash(unset http_proxy https_proxy)",
+      "Bash(mkdir:*)",
+      "Bash(npm ls:*)"
     ],
     "deny": []
   }

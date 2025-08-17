@@ -47,7 +47,7 @@ async function fixDatabaseConnection() {
       
       await prisma.$disconnect()
     } catch (error) {
-      console.error('   ❌ 数据库连接失败:', error.message)
+      console.error('   ❌ 数据库连接失败:', error instanceof Error ? error.message : String(error))
       throw error
     }
 

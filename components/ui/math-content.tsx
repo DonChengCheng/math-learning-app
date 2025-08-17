@@ -5,215 +5,205 @@ import remarkMath from 'remark-math'
 import remarkGfm from 'remark-gfm'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
-import { useMemo, useState, useEffect } from 'react'
+import { processLaTeX, processLaTeXWithDebug } from '@/lib/latex-processor'
+import { useState, useEffect } from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
 
 interface MathContentProps {
   content: string
   className?: string
+  debug?: boolean
 }
 
-export function MathContent({ content, className = '' }: MathContentProps) {
-  const [renderError, setRenderError] = useState<string | null>(null)
-  const processedContent = useMemo(() => {
-    if (!content) return ''
-    
-    // Process the content to handle special tags and convert to standard format
-    let processed = content
-    
-    // Remove trailing plus signs from database output if present
-    processed = processed.replace(/\s*\+\s*$/gm, '')
-    
-    // Fix double backslash escaping issue from JavaScript string templates
-    // In template literals, \\\\ becomes \\, but KaTeX needs \\ for line breaks
-    processed = processed.replace(/\\\\\\\\/g, '\\\\')
-    
-    // Convert <BLOCK_MATH> tags to $$ notation
-    processed = processed.replace(/<BLOCK_MATH>(.*?)<\/BLOCK_MATH>/g, (_, math) => {
-      return `$$${math.trim()}$$`
-    })
-    
-    // Convert <INLINE_MATH> tags to $ notation
-    processed = processed.replace(/<INLINE_MATH>(.*?)<\/INLINE_MATH>/g, (_, math) => {
-      return `$${math.trim()}$`
-    })
-    
-    // Fix matrix environment issues
-    processed = fixMatrixEnvironments(processed)
-    
-    return processed
-  }, [content])
+interface ProcessingResult {
+  processed: string
+  hasError: boolean
+  errorMessage?: string
+}
 
-  // Function to detect and fix matrix environment issues
-  function fixMatrixEnvironments(content: string): string {
-    let fixed = content
-    
-    // First, detect and fix the most common issue: standalone matrix content without proper environment
-    // Look for $$ blocks that contain & and \\ but no matrix environment
-    const standaloneMatrixPattern = /\$\$([^$]+?)\$\$/g
-    fixed = fixed.replace(standaloneMatrixPattern, (match, mathContent) => {
-      // Check if this looks like matrix content without environment
-      if (mathContent.includes('&') && mathContent.includes('\\\\') && 
-          !mathContent.includes('\\begin{') && !mathContent.includes('\\end{') &&
-          mathContent.match(/[a-zA-Z_]\{[^}]*\}/)) {
-        console.warn('Detected standalone matrix content, wrapping with vmatrix environment')
-        return `$$\\begin{vmatrix}\n${mathContent.trim()}\n\\end{vmatrix}$$`
-      }
-      return match
-    })
-    
-    // Fix missing \begin{vmatrix} - look for content that has \end{vmatrix} but no \begin
-    const missingBeginPattern = /\$\$([^$]*?[a-zA-Z_]\{[^}]*\}\s*&[^$]*?)\\end\{vmatrix\}/g
-    fixed = fixed.replace(missingBeginPattern, (match, matrixContent) => {
-      if (!matrixContent.includes('\\begin{vmatrix}')) {
-        console.warn('Fixed missing \\begin{vmatrix}')
-        return `$$\\begin{vmatrix}\n${matrixContent}\\end{vmatrix}`
-      }
-      return match
-    })
-    
-    // Fix missing \end{vmatrix} - look for \begin{vmatrix} without corresponding \end
-    const missingEndPattern = /\$\$(\\begin\{vmatrix\}[^$]*?)(?!\$\$[^$]*\\end\{vmatrix\})\$\$/g
-    fixed = fixed.replace(missingEndPattern, (match, matrixContent) => {
-      if (matrixContent.includes('&') && !matrixContent.includes('\\end{vmatrix}')) {
-        console.warn('Fixed missing \\end{vmatrix}')
-        return `$$${matrixContent}\n\\end{vmatrix}$$`
-      }
-      return match
-    })
-    
-    return fixed
-  }
+interface ErrorFallbackProps {
+  error: Error
+  resetErrorBoundary: () => void
+  originalContent: string
+}
 
-  // Reset error when content changes
+function MathErrorFallback({ error, resetErrorBoundary, originalContent }: ErrorFallbackProps) {
+  return (
+    <div className="border border-red-300 bg-red-50 p-4 rounded-lg">
+      <div className="text-red-800 font-semibold mb-2">Math Rendering Error</div>
+      <div className="text-red-600 text-sm mb-3">
+        {error.message.includes('KaTeX') ? 
+          'KaTeX encountered an issue parsing the mathematical content. This often occurs with matrix formatting.' :
+          error.message
+        }
+      </div>
+      <details className="text-sm">
+        <summary className="text-gray-600 cursor-pointer hover:text-gray-800 mb-2">
+          Show original content
+        </summary>
+        <pre className="bg-white p-2 rounded text-xs overflow-x-auto border">
+          {originalContent}
+        </pre>
+      </details>
+      <button 
+        onClick={resetErrorBoundary}
+        className="text-blue-600 hover:text-blue-800 text-sm underline mt-2"
+      >
+        Try again
+      </button>
+    </div>
+  )
+}
+
+export function MathContent({ content, className = '', debug = false }: MathContentProps) {
+  const [processingResult, setProcessingResult] = useState<ProcessingResult>({ 
+    processed: '', 
+    hasError: false 
+  })
+
   useEffect(() => {
-    setRenderError(null)
-  }, [content])
+    if (!content) {
+      setProcessingResult({ processed: '', hasError: false })
+      return
+    }
 
-  if (renderError) {
+    try {
+      // 使用专用的 LaTeX 处理器
+      const processedContent = debug 
+        ? processLaTeXWithDebug(content).processed
+        : processLaTeX(content, { preserveSpacing: true })
+      
+      setProcessingResult({
+        processed: processedContent,
+        hasError: false
+      })
+    } catch (error) {
+      console.error('LaTeX processing error:', error)
+      setProcessingResult({
+        processed: content, // 回退到原始内容
+        hasError: true,
+        errorMessage: error instanceof Error ? error.message : 'Unknown processing error'
+      })
+    }
+  }, [content, debug])
+
+  // 开发环境下显示调试信息
+  useEffect(() => {
+    if (debug && process.env.NODE_ENV === 'development' && content) {
+      const debugInfo = processLaTeXWithDebug(content)
+      console.group('MathContent Debug Info')
+      console.log('原始内容:', content.substring(0, 200) + '...')
+      console.log('处理后内容:', debugInfo.processed.substring(0, 200) + '...')
+      console.log('数学元素:', debugInfo.mathElements)
+      console.log('处理日志:', debugInfo.debugLog)
+      console.log('处理结果:', processingResult)
+      console.groupEnd()
+    }
+  }, [content, debug, processingResult])
+
+  if (!content) return null
+
+  if (processingResult.hasError && debug) {
     return (
-      <div className={`prose prose-gray max-w-none ${className}`}>
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">数学内容渲染错误</h3>
-              <div className="mt-2 text-sm text-red-700">
-                <p>数学公式解析失败，请检查公式语法。</p>
-                <details className="mt-2">
-                  <summary className="cursor-pointer text-gray-600">查看详情</summary>
-                  <pre className="mt-1 text-xs bg-red-100 p-2 rounded overflow-x-auto">{renderError}</pre>
-                </details>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="mt-4 text-gray-600">
-          <h4 className="font-medium">原始内容：</h4>
-          <pre className="mt-2 bg-gray-100 p-3 rounded text-sm overflow-x-auto">{content}</pre>
+      <div className={`border border-red-300 bg-red-50 p-4 rounded-lg ${className}`}>
+        <div className="text-red-800 font-semibold mb-2">LaTeX Processing Error</div>
+        <div className="text-red-600 text-sm mb-3">{processingResult.errorMessage}</div>
+        <div className="text-gray-700 text-sm">
+          <strong>Original content:</strong>
+          <pre className="bg-white p-2 mt-1 rounded text-xs overflow-x-auto">
+            {content}
+          </pre>
         </div>
       </div>
     )
   }
 
-  try {
-    return (
+  return (
+    <ErrorBoundary
+      FallbackComponent={(props) => <MathErrorFallback {...props} originalContent={content} />}
+      onReset={() => setProcessingResult({ processed: content, hasError: false })}
+    >
       <div className={`prose prose-gray max-w-none prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-h4:text-base prose-p:text-gray-700 prose-li:text-gray-700 prose-strong:text-gray-900 ${className}`}>
         <ReactMarkdown
-          remarkPlugins={[remarkMath, remarkGfm]}
-          rehypePlugins={[
-            [rehypeKatex, {
-              strict: false,
-              trust: true,
-              throwOnError: false,
-              displayMode: false,
-              errorColor: '#cc0000',
-              output: 'html',
-              macros: {
-                // Add common matrix macros if needed
-                '\\RR': '\\mathbb{R}',
-                '\\NN': '\\mathbb{N}',
-                '\\ZZ': '\\mathbb{Z}',
-                '\\QQ': '\\mathbb{Q}',
-                '\\CC': '\\mathbb{C}',
-                "\\R": "\\mathbb{R}",
-                "\\N": "\\mathbb{N}",
-                "\\Z": "\\mathbb{Z}",
-                "\\Q": "\\mathbb{Q}",
-                "\\C": "\\mathbb{C}",
-                "\\det": "\\operatorname{det}",
-                "\\rank": "\\operatorname{rank}",
-                "\\trace": "\\operatorname{trace}",
-                "\\dim": "\\operatorname{dim}",
-              },
-              // Custom error handler for better debugging
-              errorCallback: (msg: string, error: any) => {
-                console.error('KaTeX error details:', { msg, error, processedContent })
-                // Check if it's a matrix-related error
-                if (msg.includes('&') || msg.includes('vmatrix') || msg.includes('bmatrix')) {
-                  console.error('Matrix parsing error detected. Content may have incomplete matrix environments.')
-                }
-                setRenderError(`KaTeX Error: ${msg}`)
-                return false // Don't throw, handle gracefully
-              }
-            }]
-          ]}
-          components={{
-            // Custom rendering for specific elements if needed
-            h1: ({ children }) => <h1 className="text-2xl font-bold mt-6 mb-4">{children}</h1>,
-            h2: ({ children }) => <h2 className="text-xl font-bold mt-5 mb-3">{children}</h2>,
-            h3: ({ children }) => <h3 className="text-lg font-bold mt-4 mb-2">{children}</h3>,
-            h4: ({ children }) => <h4 className="text-base font-bold mt-3 mb-2">{children}</h4>,
-            p: ({ children }) => <p className="my-3 leading-relaxed">{children}</p>,
-            ul: ({ children }) => <ul className="list-disc list-inside my-3 space-y-1">{children}</ul>,
-            ol: ({ children }) => <ol className="list-decimal list-inside my-3 space-y-1">{children}</ol>,
-            li: ({ children }) => <li className="ml-4">{children}</li>,
-            // Enhanced math element handling
-            span: ({ className, children, ...props }) => {
-              // KaTeX renders math as spans with specific classes
-              if (className?.includes('katex')) {
-                return <span className={`${className} select-text`} {...props}>{children}</span>
-              }
-              return <span className={className} {...props}>{children}</span>
+        remarkPlugins={[
+          [remarkMath, { 
+            singleDollarTextMath: true, // 允许单个$作为内联数学
+            inlineMathDouble: false // 禁用双美元符号作为内联数学
+          }],
+          remarkGfm
+        ]}
+        rehypePlugins={[
+          [rehypeKatex, {
+            strict: false, // 不严格模式，允许更多的LaTeX命令
+            trust: (context) => {
+              // 信任矩阵环境和基本数学命令
+              const trustedCommands = ['\\begin', '\\end', '\\times', '\\frac', '\\sum', '\\int', '\\lim']
+              const trustedEnvironments = ['matrix', 'pmatrix', 'bmatrix', 'vmatrix', 'Vmatrix', 'Bmatrix', 'smallmatrix']
+              return trustedCommands.some(cmd => context.command === cmd) || 
+                     trustedEnvironments.some(env => context.environment === env)
             },
-            div: ({ className, children, ...props }) => {
-              // Handle KaTeX display math divs
-              if (className?.includes('katex-display')) {
-                return <div className={`${className} my-6 text-center overflow-x-auto max-w-full`} {...props}>{children}</div>
-              }
-              return <div className={className} {...props}>{children}</div>
-            },
-            code: ({ className, children, ...props }) => {
-              const match = /language-(\w+)/.exec(className || '')
-              return match ? (
-                <pre className="bg-gray-100 rounded-md p-4 overflow-x-auto my-3">
-                  <code className={className} {...props}>
-                    {children}
-                  </code>
-                </pre>
-              ) : (
-                <code className="bg-gray-100 rounded px-1 py-0.5 text-sm" {...props}>
+            throwOnError: false, // 遇到错误时不抛出异常，而是显示错误
+            errorColor: '#dc2626', // 更明显的错误颜色
+            output: 'html', // 仅输出HTML，避免MathML兼容性问题
+            displayMode: false, // 默认不是显示模式
+            fleqn: false, // 不强制左对齐
+            // 移除可能冲突的宏定义，让KaTeX使用默认行为
+            macros: {
+              // 仅保留最基本的数学符号宏
+              "\\RR": "\\mathbb{R}",
+              "\\NN": "\\mathbb{N}",
+              "\\ZZ": "\\mathbb{Z}",
+              "\\QQ": "\\mathbb{Q}",
+              "\\CC": "\\mathbb{C}"
+            }
+          }]
+        ]}
+        components={{
+          h1: ({ children }) => <h1 className="text-2xl font-bold mt-6 mb-4">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-xl font-bold mt-5 mb-3">{children}</h2>,
+          h3: ({ children }) => <h3 className="text-lg font-bold mt-4 mb-2">{children}</h3>,
+          h4: ({ children }) => <h4 className="text-base font-bold mt-3 mb-2">{children}</h4>,
+          p: ({ children }) => <p className="my-3 leading-relaxed">{children}</p>,
+          ul: ({ children }) => <ul className="list-disc list-inside my-3 space-y-1">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal list-inside my-3 space-y-1">{children}</ol>,
+          li: ({ children }) => <li className="ml-4">{children}</li>,
+          code: ({ className, children, ...props }) => {
+            const match = /language-(\w+)/.exec(className || '')
+            return match ? (
+              <pre className="bg-gray-100 rounded-md p-4 overflow-x-auto my-3">
+                <code className={className} {...props}>
                   {children}
                 </code>
-              )
-            },
-            blockquote: ({ children }) => (
-              <blockquote className="border-l-4 border-gray-300 pl-4 my-3 italic">
+              </pre>
+            ) : (
+              <code className="bg-gray-100 rounded px-1 py-0.5 text-sm" {...props}>
                 {children}
-              </blockquote>
-            ),
-          }}
-        >
-          {processedContent}
-        </ReactMarkdown>
+              </code>
+            )
+          },
+          blockquote: ({ children }) => (
+            <blockquote className="border-l-4 border-gray-300 pl-4 my-3 italic">
+              {children}
+            </blockquote>
+          ),
+          // 增强数学渲染的显示效果
+          span: ({ className, children, ...props }) => {
+            if (className?.includes('katex')) {
+              return <span className={`${className} select-text`} {...props}>{children}</span>
+            }
+            return <span className={className} {...props}>{children}</span>
+          },
+          div: ({ className, children, ...props }) => {
+            if (className?.includes('katex-display')) {
+              return <div className={`${className} my-6 text-center overflow-x-auto max-w-full`} {...props}>{children}</div>
+            }
+            return <div className={className} {...props}>{children}</div>
+          },
+        }}
+      >
+        {processingResult.processed}
+      </ReactMarkdown>
       </div>
-    )
-  } catch (error) {
-    console.error('MathContent render error:', error)
-    setRenderError(error instanceof Error ? error.message : String(error))
-    return null
-  }
+    </ErrorBoundary>
+  )
 }

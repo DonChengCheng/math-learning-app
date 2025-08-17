@@ -50,3 +50,13 @@ next-env.d.ts
 
 # prisma development
 prisma-dev.log
+
+# Large data files (now using web-based fetching)
+data/*-content.ts
+data/*.json
+!data/.gitkeep
+
+# Temporary and test files
+*.tmp
+*.test.json
+scripts/test-*.ts

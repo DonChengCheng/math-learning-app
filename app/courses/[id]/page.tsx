@@ -1,5 +1,5 @@
 import { auth } from '@/auth'
-import { getCourseById } from '@/lib/courses'
+import { getCourseById, ChapterWithLessons, Lesson } from '@/lib/courses'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -22,12 +22,12 @@ export default async function CoursePage({
     notFound()
   }
 
-  const totalLessons = course.chapters.reduce((total: number, chapter: any) => {
+  const totalLessons = course.chapters.reduce((total: number, chapter: ChapterWithLessons) => {
     return total + chapter.lessons.length
   }, 0)
 
-  const completedLessons = course.chapters.reduce((total: number, chapter: any) => {
-    return total + chapter.lessons.filter((lesson: any) => 
+  const completedLessons = course.chapters.reduce((total: number, chapter: ChapterWithLessons) => {
+    return total + chapter.lessons.filter((lesson: Lesson) => 
       lesson.progress && lesson.progress.length > 0
     ).length
   }, 0)
@@ -112,8 +112,8 @@ export default async function CoursePage({
 
         {/* 章节列表 */}
         <div className="space-y-6">
-          {course.chapters.map((chapter: any, index: number) => {
-            const chapterProgress = chapter.lessons.filter((lesson: any) => 
+          {course.chapters.map((chapter: ChapterWithLessons, index: number) => {
+            const chapterProgress = chapter.lessons.filter((lesson: Lesson) => 
               lesson.progress && lesson.progress.length > 0
             ).length
             
@@ -153,7 +153,7 @@ export default async function CoursePage({
                 </div>
                 
                 <div className="divide-y divide-gray-200">
-                  {chapter.lessons.map((lesson: any, lessonIndex: number) => {
+                  {chapter.lessons.map((lesson: Lesson, lessonIndex: number) => {
                     const isCompleted = lesson.progress && lesson.progress.length > 0
                     
                     return (

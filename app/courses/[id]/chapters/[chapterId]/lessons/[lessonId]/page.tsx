@@ -97,7 +97,7 @@ export default async function LessonPage({
 
         {/* 课时内容 */}
         <div className="bg-white shadow-sm rounded-lg p-6 mb-8">
-          <MathContent content={lesson.content} />
+          <MathContent content={lesson.content} debug={process.env.NODE_ENV === 'development'} />
           
           {lesson.videoUrl && (
             <div className="mt-8">
@@ -127,7 +127,7 @@ export default async function LessonPage({
                         {index + 1}. {problem.title}
                       </h4>
                       <div className="text-gray-600 mt-2">
-                        <MathContent content={problem.content} />
+                        <MathContent content={problem.content} debug={process.env.NODE_ENV === 'development'} />
                       </div>
                       <div className="flex items-center mt-3 text-sm">
                         <span className={`px-2 py-1 rounded text-xs font-medium ${

@@ -106,28 +106,28 @@ export class LaTeXProcessor {
   private processMathEnvironment(formula: string): string {
     let processed = formula.trim()
 
-    // 保护矩阵环境内容
-    processed = this.protectMatrixEnvironments(processed)
+    // 保护数学环境内容（矩阵、对齐等）
+    processed = this.protectMathEnvironments(processed)
     
     // 确保数学环境命令格式正确
     processed = this.fixMathCommands(processed)
 
-    // 恢复矩阵环境内容
-    processed = this.restoreMatrixEnvironments(processed)
+    // 恢复数学环境内容
+    processed = this.restoreMathEnvironments(processed)
 
     return processed
   }
 
   /**
-   * 保护矩阵环境内容，防止被其他处理破坏
+   * 保护数学环境内容（矩阵、对齐等），防止被其他处理破坏
    */
-  private matrixPlaceholders: Map<string, string> = new Map()
+  private mathEnvPlaceholders: Map<string, string> = new Map()
   
-  private protectMatrixEnvironments(content: string): string {
-    this.matrixPlaceholders.clear()
+  private protectMathEnvironments(content: string): string {
+    this.mathEnvPlaceholders.clear()
     
-    // 匹配所有矩阵环境
-    const matrixPattern = /\\begin\{((?:v|b|p|B|V|matrix|smallmatrix|pmatrix|bmatrix|vmatrix|Vmatrix|Bmatrix)(?:matrix)?)\}([\s\S]*?)\\end\{\1\}/g
+    // 匹配所有矩阵和对齐环境
+    const matrixPattern = /\\begin\{(matrix|pmatrix|bmatrix|vmatrix|Vmatrix|Bmatrix|smallmatrix|aligned|align|split|gather)\}([\s\S]*?)\\end\{\1\}/g
     
     let placeholderIndex = 0
     return content.replace(matrixPattern, (match, envName, matrixContent) => {
@@ -137,22 +137,22 @@ export class LaTeXProcessor {
       const cleanMatrixContent = this.cleanMatrixContent(matrixContent)
       const cleanedMatch = `\\begin{${envName}}${cleanMatrixContent}\\end{${envName}}`
       
-      this.matrixPlaceholders.set(placeholder, cleanedMatch)
-      this.log(`保护矩阵环境: ${envName}`, cleanedMatch.substring(0, 50))
+      this.mathEnvPlaceholders.set(placeholder, cleanedMatch)
+      this.log(`保护数学环境: ${envName}`, cleanedMatch.substring(0, 50))
       
       return placeholder
     })
   }
   
   /**
-   * 恢复矩阵环境内容
+   * 恢复数学环境内容
    */
-  private restoreMatrixEnvironments(content: string): string {
+  private restoreMathEnvironments(content: string): string {
     let restored = content
     
-    this.matrixPlaceholders.forEach((originalContent, placeholder) => {
+    this.mathEnvPlaceholders.forEach((originalContent, placeholder) => {
       restored = restored.replace(placeholder, originalContent)
-      this.log('恢复矩阵环境', originalContent.substring(0, 50))
+      this.log('恢复数学环境', originalContent.substring(0, 50))
     })
     
     return restored
@@ -163,12 +163,11 @@ export class LaTeXProcessor {
    */
   private cleanMatrixContent(matrixContent: string): string {
     return matrixContent
-      // 标准化行分隔符 - 确保是双反斜杠
-      .replace(/(?<!\\)\\(?!\\)/g, '\\\\')
       // 清理多余的空白
       .replace(/^\s+|\s+$/g, '')
-      // 确保行与行之间有适当的空白
+      // 确保行与行之间有适当的空白，但不过度修改已正确的语法
       .replace(/\\\\\s*/g, ' \\\\ ')
+      .trim()
   }
 
   /**

@@ -92,8 +92,8 @@ export function MathContent({ content, className = '', debug = false }: MathCont
     if (debug && process.env.NODE_ENV === 'development' && content) {
       const debugInfo = processLaTeXWithDebug(content)
       console.group('MathContent Debug Info')
-      console.log('原始内容:', content.substring(0, 200) + '...')
-      console.log('处理后内容:', debugInfo.processed.substring(0, 200) + '...')
+      console.log('原始内容:', content.substring(0, 200) + (content.length > 200 ? '...' : ''))
+      console.log('处理后内容:', debugInfo.processed.substring(0, 200) + (debugInfo.processed.length > 200 ? '...' : ''))
       console.log('数学元素:', debugInfo.mathElements)
       console.log('处理日志:', debugInfo.debugLog)
       console.log('处理结果:', processingResult)
@@ -135,10 +135,10 @@ export function MathContent({ content, className = '', debug = false }: MathCont
         rehypePlugins={[
           [rehypeKatex, {
             strict: false, // 不严格模式，允许更多的LaTeX命令
-            trust: (context) => {
+            trust: (context: { command?: string; environment?: string }) => {
               // 信任矩阵环境和基本数学命令
               const trustedCommands = ['\\begin', '\\end', '\\times', '\\frac', '\\sum', '\\int', '\\lim']
-              const trustedEnvironments = ['matrix', 'pmatrix', 'bmatrix', 'vmatrix', 'Vmatrix', 'Bmatrix', 'smallmatrix']
+              const trustedEnvironments = ['matrix', 'pmatrix', 'bmatrix', 'vmatrix', 'Vmatrix', 'Bmatrix', 'smallmatrix', 'align', 'aligned', 'split', 'gather', 'multline', 'eqnarray']
               return trustedCommands.some(cmd => context.command === cmd) || 
                      trustedEnvironments.some(env => context.environment === env)
             },

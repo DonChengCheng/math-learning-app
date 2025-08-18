@@ -28,6 +28,15 @@ export interface Lesson {
   content: string
   videoUrl: string | null
   order: number
+  progress?: UserProgress[]
+  problems?: Problem[]
+}
+
+export interface Problem {
+  id: string
+  title: string
+  difficulty: number
+  points: number
 }
 
 export interface UserProgress {

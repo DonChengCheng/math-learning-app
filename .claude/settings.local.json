@@ -42,8 +42,11 @@
       "Bash(npx puppeteer browsers:*)",
       "Bash(unset http_proxy https_proxy)",
       "Bash(mkdir:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "WebFetch(domain:katex.org)",
+      "Bash(npm audit:*)"
     ],
     "deny": []
-  }
+  },
+  "outputStyle": "default"
 }
